@@ -1,14 +1,25 @@
-FROM NODE:18
+# Etapa de construcción
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-COPY . /app
+COPY package*.json ./
+RUN npm install
 
-ENV NODE_ENV=production
+COPY . .
+RUN npm run build
 
-RUN npm install -g serve
-RUN npm i --production
+# Etapa de ejecución
+FROM nginx:alpine
 
-EXPOSE 3000
+# Copia los archivos construidos desde la etapa de construcción
+COPY --from=builder /app/build /usr/share/nginx/html
 
-CMD ["npm", "run", "serve"]
+# Copia el archivo de configuración de nginx personalizado
+COPY nginx.conf ./
+
+# Expone el puerto 80 para que la aplicación sea accesible
+EXPOSE 80
+
+# Inicia nginx en modo foreground
+CMD ["nginx", "-g", "daemon off;"]
