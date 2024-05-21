@@ -1,25 +1,14 @@
-# Etapa de construcción
-FROM node:18-alpine AS builder
-
+FROM node:lts-bullseye AS build
 WORKDIR /app
-
 COPY package*.json ./
-RUN npm install
-
+RUN npm ci
 COPY . .
+RUN chmod +x ./node_modules/.bin/react-scripts
 RUN npm run build
 
-# Etapa de ejecución
+
 FROM nginx:alpine
-
-# Copia los archivos construidos desde la etapa de construcción
-COPY --from=builder /app/build /usr/share/nginx/html
-
-# Copia el archivo de configuración de nginx personalizado
-COPY nginx.conf ./
-
-# Expone el puerto 80 para que la aplicación sea accesible
+ADD ./config/default.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/build /var/www/app/
 EXPOSE 80
-
-# Inicia nginx en modo foreground
 CMD ["nginx", "-g", "daemon off;"]
